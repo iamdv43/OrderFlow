@@ -1,48 +1,59 @@
 package com.orderflow.user.controllers;
 
-import com.orderflow.user.repositories.UserRepository;
-import com.orderflow.user.models.User;
+import com.orderflow.user.dto.UserRequest;
+import com.orderflow.user.dto.UserResponse;
+import com.orderflow.user.services.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
-import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 
 @RestController
+@RequestMapping("/users")
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
-    @GetMapping("/users")
-    public List<User> getAllUsers(HttpServletRequest request) {
-        logHeaders(request);
-        return userRepository.findAll();
+    @GetMapping({ "", "/" })
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
 
-    @PostMapping("/users")
-    public ResponseEntity<User> addUser(@RequestBody User user, HttpServletRequest request) {
-        logHeaders(request);
-        if (user.getUserId() == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        User savedUser = userRepository.save(user);
-        return ResponseEntity.ok(savedUser);
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID userId) {
+        UserResponse user = userService.getUserById(userId);
+        return ResponseEntity.ok(user);
     }
 
-    @GetMapping("/")
-    public String home(HttpServletRequest request) {
-        logHeaders(request);
-        return "User Service Running...";
+    @GetMapping("/email/{email}")
+    public ResponseEntity<UserResponse> getUserByEmail(@PathVariable String email) {
+        UserResponse user = userService.getUserByEmail(email);
+        return ResponseEntity.ok(user);
     }
 
-    private void logHeaders(HttpServletRequest request) {
-        System.out.println("---- Incoming Request Headers ----");
-        request.getHeaderNames().asIterator().forEachRemaining(
-                name -> System.out.println(name + ": " + request.getHeader(name)));
-        System.out.println("----------------------------------");
+    @PostMapping({ "", "/" })
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest userRequest) {
+        UserResponse createdUser = userService.createUser(userRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+    }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserRequest userRequest) {
+        UserResponse updatedUser = userService.updateUser(userId, userRequest);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
+        userService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
     }
 }
